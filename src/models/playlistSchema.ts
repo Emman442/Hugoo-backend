@@ -15,8 +15,13 @@ const playlistSchema = new mongoose.Schema({
     description: { type: String },
     songs: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "Song"
     }],
+    mode: {
+        type: String,
+        default: "easy",
+        enum: ["easy", "medium", "hard"]
+    }
 
 });
 

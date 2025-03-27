@@ -28,7 +28,7 @@ export const createPlaylist = async (req: Request, res: Response) => {
 
 export const getPlaylists = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const playlists = await Playlist.find({});
+        const playlists = await Playlist.find({}).populate("songs").exec();
         res.status(200).json({
             status: "success",
             data: { playlists }
@@ -41,7 +41,7 @@ export const getPlaylists = async (req: Request, res: Response, next: NextFuncti
 export const getPlaylistById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const playlistId = req.params.playlistId;
-        const playlist = await Playlist.findById(playlistId);
+        const playlist = await Playlist.findById(playlistId).populate("songs");
 
         if (!playlist) {
             return next(new AppError("No Playlist with that ID was found!", 404));
