@@ -16,5 +16,5 @@ const songSchema = new mongoose_1.default.Schema({
         ref: "Playlist"
     },
 }, { timestamps: true });
-const Song = mongoose_1.default.model("Playlist", songSchema);
+const Song = mongoose_1.default.model("Song", songSchema);
 exports.default = Song;

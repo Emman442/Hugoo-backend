@@ -12,13 +12,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createPlaylist = void 0;
+exports.updatePlaylist = exports.deletePlaylistById = exports.getPlaylistById = exports.getPlaylists = exports.createPlaylist = void 0;
 const playlistSchema_1 = __importDefault(require("../models/playlistSchema"));
+const upload_1 = require("../utils/upload");
+const appError_1 = __importDefault(require("../utils/appError"));
 const createPlaylist = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const { name, description } = req.body;
+    const image = yield (0, upload_1.uploadFile)((_a = req.file) === null || _a === void 0 ? void 0 : _a.path);
     const newPlaylist = yield playlistSchema_1.default.create({
         name,
         description,
+        image: image === null || image === void 0 ? void 0 : image.secure_url
     });
     res.status(200).json({
         status: "success",
@@ -28,3 +33,79 @@ const createPlaylist = (req, res) => __awaiter(void 0, void 0, void 0, function*
     });
 });
 exports.createPlaylist = createPlaylist;
+const getPlaylists = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const playlists = yield playlistSchema_1.default.find({});
+        res.status(200).json({
+            status: "success",
+            data: { playlists }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.getPlaylists = getPlaylists;
+const getPlaylistById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const playlistId = req.params.playlistId;
+        const playlist = yield playlistSchema_1.default.findById(playlistId);
+        if (!playlist) {
+            return next(new appError_1.default("No Playlist with that ID was found!", 404));
+        }
+        res.status(200).json({
+            status: "success",
+            data: { playlist },
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.getPlaylistById = getPlaylistById;
+const deletePlaylistById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const playlistId = req.params.playlistId;
+        const playlist = yield playlistSchema_1.default.findById(playlistId);
+        if (!playlist) {
+            return next(new appError_1.default("No Playlist with that ID was found!", 404));
+        }
+        yield playlistSchema_1.default.findByIdAndDelete(playlistId);
+        res.status(200).json({
+            status: "success",
+            data: null
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.deletePlaylistById = deletePlaylistById;
+const updatePlaylist = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { playlistId } = req.params;
+        const playlist = yield playlistSchema_1.default.findById(playlistId);
+        if (!playlist) {
+            return next(new appError_1.default("No Playlist with that ID was found", 404));
+        }
+        if (req.file) {
+            const image = yield (0, upload_1.uploadFile)(req.file.path);
+            playlist.image = image.secure_url;
+        }
+        if (req.body.name) {
+            playlist.name = req.body.name;
+        }
+        if (req.body.description) {
+            playlist.description = req.body.description;
+        }
+        yield playlist.save({ validateBeforeSave: false });
+        res.status(200).json({
+            status: "success",
+            data: { playlist },
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.updatePlaylist = updatePlaylist;

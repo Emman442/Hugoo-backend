@@ -9,6 +9,10 @@ const playlistSchema = new mongoose_1.default.Schema({
         type: String,
         required: true
     },
+    images: [
+        { type: String }
+    ],
+    image: { type: String, required: true },
     description: { type: String },
     songs: [{
             type: mongoose_1.default.Schema.Types.ObjectId,
