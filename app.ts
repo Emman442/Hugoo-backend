@@ -17,9 +17,9 @@ app.use(express.static(path.join(__dirname, "public")));
 
 
  cloudinary.v2.config({
-    cloud_name: "dighewixb",
-    api_key: "999648751199222",
-    api_secret: "Wlq7lsmTYKxhhvrGku4PMdVjg3I",
+     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+     api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 
