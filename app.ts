@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import cloudinary from "cloudinary"
 import path from "path";
 import morgan from "morgan";
+import cors from "cors";
 dotenv.config()
 const app = express();
 const PORT = process.env.PORT;
@@ -21,8 +22,10 @@ app.use(express.static(path.join(__dirname, "public")));
     api_secret: "Wlq7lsmTYKxhhvrGku4PMdVjg3I",
 });
 
+
 app.use(express.json());
 app.use(morgan("dev"))
+app.use(cors())
 
 mongoose.connect(process.env.MONGO_URI as string).then((con) => console.log("Hugoo Database connected Successfully!"), err => { console.log(err) })
 
