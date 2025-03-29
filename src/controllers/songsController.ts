@@ -28,3 +28,18 @@ export const addSongToPlaylist = async(req:Request, res: Response, next: NextFun
         next(error)
     }
 }
+export const fetchSongs = async(req:Request, res: Response, next: NextFunction)=>{
+    try {
+        const songs = await Song.find({}).populate("playlists")
+      
+    
+        res.status(200).json({
+            status: "success",
+            data: {
+                songs
+            }
+        })
+    } catch (error) {
+        next(error)
+    }
+}

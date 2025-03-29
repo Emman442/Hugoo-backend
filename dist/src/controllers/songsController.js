@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addSongToPlaylist = void 0;
+exports.fetchSongs = exports.addSongToPlaylist = void 0;
 const songSchema_1 = __importDefault(require("../models/songSchema"));
 const playlistSchema_1 = __importDefault(require("../models/playlistSchema"));
 const appError_1 = __importDefault(require("../utils/appError"));
@@ -42,3 +42,18 @@ const addSongToPlaylist = (req, res, next) => __awaiter(void 0, void 0, void 0, 
     }
 });
 exports.addSongToPlaylist = addSongToPlaylist;
+const fetchSongs = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const songs = yield songSchema_1.default.find({}).populate("playlists");
+        res.status(200).json({
+            status: "success",
+            data: {
+                songs
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.fetchSongs = fetchSongs;

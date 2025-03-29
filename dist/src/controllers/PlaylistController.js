@@ -35,7 +35,10 @@ const createPlaylist = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.createPlaylist = createPlaylist;
 const getPlaylists = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const playlists = yield playlistSchema_1.default.find({});
+        const playlists = yield playlistSchema_1.default.find({}).populate({
+            path: "songs",
+            select: "artist song_name url", // specify the fields you want to populate
+        });
         res.status(200).json({
             status: "success",
             data: { playlists }
@@ -49,7 +52,7 @@ exports.getPlaylists = getPlaylists;
 const getPlaylistById = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const playlistId = req.params.playlistId;
-        const playlist = yield playlistSchema_1.default.findById(playlistId);
+        const playlist = yield playlistSchema_1.default.findById(playlistId).populate("songs");
         if (!playlist) {
             return next(new appError_1.default("No Playlist with that ID was found!", 404));
         }

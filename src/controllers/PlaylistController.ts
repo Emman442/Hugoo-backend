@@ -28,7 +28,10 @@ export const createPlaylist = async (req: Request, res: Response) => {
 
 export const getPlaylists = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const playlists = await Playlist.find({}).populate("songs").exec();
+        const playlists = await Playlist.find({}).populate({
+            path: "songs",
+            select: "artist song_name url", // specify the fields you want to populate
+        });
         res.status(200).json({
             status: "success",
             data: { playlists }
