@@ -22,10 +22,15 @@ app.use(express.static(path.join(__dirname, "public")));
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+const corsOptions = {
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+
+    optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
 
 app.use(express.json());
 app.use(morgan("dev"))
-app.use(cors())
+app.use(cors(corsOptions))
 
 mongoose.connect(process.env.MONGO_URI as string).then((con) => console.log("Hugoo Database connected Successfully!"), err => { console.log(err) })
 
