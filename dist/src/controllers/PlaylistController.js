@@ -18,12 +18,13 @@ const upload_1 = require("../utils/upload");
 const appError_1 = __importDefault(require("../utils/appError"));
 const createPlaylist = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { name, description } = req.body;
+    const { name, description, mode } = req.body;
     const image = yield (0, upload_1.uploadFile)((_a = req.file) === null || _a === void 0 ? void 0 : _a.path);
     const newPlaylist = yield playlistSchema_1.default.create({
         name,
         description,
-        image: image === null || image === void 0 ? void 0 : image.secure_url
+        image: image === null || image === void 0 ? void 0 : image.secure_url,
+        mode
     });
     res.status(200).json({
         status: "success",

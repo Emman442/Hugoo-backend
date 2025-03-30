@@ -8,14 +8,15 @@ import Song from "../models/songSchema";
 
 
 export const createPlaylist = async (req: Request, res: Response) => {
-    const { name, description } = req.body;
+    const { name, description, mode } = req.body;
 
     const image = await uploadFile(req.file?.path)
 
     const newPlaylist = await Playlist.create({
         name,
         description,
-        image: image?.secure_url
+        image: image?.secure_url,
+        mode
     })
 
     res.status(200).json({

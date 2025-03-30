@@ -3,6 +3,7 @@ import dotenv from "dotenv"
 import userRouter from "./src/routes/userRoutes"
 import playlistRouter from "./src/routes/playlistRoutes";
 import songRouter from "./src/routes/songRoutes"
+import gameRouter from "./src/routes/gameRoutes"
 import mongoose from "mongoose";
 import cloudinary from "cloudinary"
 import path from "path";
@@ -29,9 +30,10 @@ app.use(express.static(path.join(__dirname, "public")));
 });
 
 const corsOptions = {
-    origin: '*',
-    optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
-}
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+};
 
 app.use(express.json());
 app.use(morgan("dev"))
@@ -42,6 +44,7 @@ mongoose.connect(process.env.MONGO_URI as string).then((con) => console.log("Hug
 app.use(`/api/${version}/users`, userRouter);
 app.use(`/api/${version}/playlists`, playlistRouter);
 app.use(`/api/${version}/song`,songRouter);
+app.use(`/api/${version}/game`,gameRouter);
 
 app.listen(PORT, () => {
     console.log(`Server Listening on Port ${PORT}`);
