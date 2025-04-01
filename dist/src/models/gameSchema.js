@@ -26,9 +26,11 @@ const gameSchema = new mongoose_1.default.Schema({
         enum: ["not-started", "started", "completed"],
         default: "not-started"
     },
+    total_pot: {
+        type: String
+    },
     players: [{
-            type: mongoose_1.default.Schema.Types.ObjectId,
-            ref: "User"
+            type: String
         }]
 }, { timestamps: true });
 const Game = mongoose_1.default.model("Game", gameSchema);

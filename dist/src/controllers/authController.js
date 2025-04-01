@@ -14,19 +14,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUser = void 0;
 const userModel_1 = __importDefault(require("../models/userModel"));
-const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email } = req.body;
-    const newUser = yield userModel_1.default.create({
-        name,
-        email,
-        collaborative: true,
-        public: true,
-    });
-    res.status(200).json({
-        status: "success",
-        data: {
-            newUser
+const generateusername_1 = __importDefault(require("../utils/generateusername"));
+const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const { address } = req.body;
+        const username = yield (0, generateusername_1.default)();
+        const userAlreadyExists = yield userModel_1.default.findOne({ walletAddress: address });
+        if (userAlreadyExists) {
+            // Do nothing if the user already exists
+            return res.status(200).json({
+                status: "success",
+                data: {
+                    userAlreadyExists,
+                }
+            });
         }
-    });
+        const newUser = yield userModel_1.default.create({
+            walletAddress: address,
+            username,
+        });
+        res.status(200).json({
+            status: "success",
+            data: {
+                newUser,
+            },
+        });
+    }
+    catch (error) {
+        next(error);
+    }
 });
 exports.createUser = createUser;

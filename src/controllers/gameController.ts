@@ -20,19 +20,34 @@ export const createGame = async(req: Request, res: Response, next: NextFunction)
     }
 }
 
-export const joinGame = async(req: Request, res: Response, next: (NextFunction))=>{
-    const user_addr = req.params.address
-    const {game_code} = req.body;
-    const isValidGameCode = await Game.findOne({
-        game_code: {$eq: game_code}
-    })
+export const joinGame = async(req: Request, res: Response, next: NextFunction)=>{
+   try {
+     const user_addr = req.body.address
+     const {game_code} = req.body;
+     const isValidGameCode = await Game.findOne({
+         game_code: {$eq: game_code}
+     })
+ 
+     if(!isValidGameCode){
+        console.log("not validdd")
+         return next(new AppError("Invalid Game Code", 400))
+     }
+ 
+       const game = await Game.findByIdAndUpdate(
+           isValidGameCode._id, // The ID of the game document
+           { $push: { players: user_addr } }, 
+           { new: true } 
+       );
 
-    if(!isValidGameCode){
-        return next(new AppError("Invalid Game Code", 401))
-    }
-
-    // const game = await Game.findByIdAndUpdate({
-    //     players: {$push: }
-    // })
+     res.status(200).json({
+        status: "success",
+        data: {
+            game
+        }
+     })
+ 
+   } catch (error) {
+    next(error)
+   }
     
 }

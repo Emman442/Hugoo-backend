@@ -22,9 +22,11 @@ const gameSchema = new mongoose.Schema({
         enum: ["not-started","started","completed"],
         default: "not-started"
     },
+    total_pot: {
+        type: String
+    },
     players: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        type: String
     }]
 }, {timestamps: true})
 

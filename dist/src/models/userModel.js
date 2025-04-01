@@ -7,22 +7,28 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const userSchema = new mongoose_1.default.Schema({
     name: {
         type: String,
-        required: [true, "Please provide a name"]
+        // required: [true, "Please provide a name"]
     },
     email: {
         type: String,
-        unique: true
+        // unique: true
     },
     level: {
         type: Number,
         default: 0
     },
-    publicKey: {
+    walletAddress: {
         type: String,
+        required: true,
+        unique: true
     },
     games_won: {
         type: Number,
         default: 0
+    },
+    username: {
+        type: String,
+        required: true
     },
     country: {
         type: String,

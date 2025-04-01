@@ -35,16 +35,27 @@ const createGame = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
 });
 exports.createGame = createGame;
 const joinGame = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const user_addr = req.params.address;
-    const { game_code } = req.body;
-    const isValidGameCode = yield gameSchema_1.default.findOne({
-        game_code: { $eq: game_code }
-    });
-    if (!isValidGameCode) {
-        return next(new appError_1.default("Invalid Game Code", 401));
+    try {
+        const user_addr = req.body.address;
+        const { game_code } = req.body;
+        const isValidGameCode = yield gameSchema_1.default.findOne({
+            game_code: { $eq: game_code }
+        });
+        if (!isValidGameCode) {
+            console.log("not validdd");
+            return next(new appError_1.default("Invalid Game Code", 400));
+        }
+        const game = yield gameSchema_1.default.findByIdAndUpdate(isValidGameCode._id, // The ID of the game document
+        { $push: { players: user_addr } }, { new: true });
+        res.status(200).json({
+            status: "success",
+            data: {
+                game
+            }
+        });
     }
-    // const game = await Game.findByIdAndUpdate({
-    //     players: {$push: }
-    // })
+    catch (error) {
+        next(error);
+    }
 });
 exports.joinGame = joinGame;

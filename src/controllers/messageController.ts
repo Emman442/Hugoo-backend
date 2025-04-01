@@ -1,0 +1,2 @@
+const createMessage =(data: any) =>{
+}
