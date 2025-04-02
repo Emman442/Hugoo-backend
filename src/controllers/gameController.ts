@@ -15,6 +15,10 @@ export const createGame = async(req: Request, res: Response, next: NextFunction)
         })
         newGame.players.push(host)
         await newGame.save();
+        res.status(200).json({
+            status: "success",
+            data: newGame
+        })
     } catch (error) {
         next(error);
     }

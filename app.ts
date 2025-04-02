@@ -6,7 +6,7 @@ import path from "path";
 import morgan from "morgan";
 import cors from "cors";
 import { createServer } from "http";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 
 import userRouter from "./src/routes/userRoutes";
 import playlistRouter from "./src/routes/playlistRoutes";
@@ -63,18 +63,73 @@ const io = new Server(httpServer, {
     }
 });
 
-io.on("connection", (socket) => {
-    console.log("🔌 Socket Connected:", socket.id);
+interface Player {
+    player: string;
+    socketId: string;
+}
 
-    socket.on("hello", (data) => {
-       console.log("Message Received!", data)
+
+
+interface GameQuery {
+    gameCode: string;
+    player: string;
+}
+
+
+
+// A dictionary to hold rooms and players
+const gameRooms: { [gameCode: string]: { player: string, socketId: string }[] } = {};
+
+io.on("connection", (socket: Socket) => {
+    console.log("Socket Conntected", socket.id)
+
+    const { gameCode, player } = socket.handshake.query as unknown as GameQuery;
+    console.log(gameCode, player);
+    // Ensure both gameCode and player are provided
+    if (!gameCode || !player) {
+        return socket.emit("error", "Missing game code or player information");
+    }
+
+  
+    if (!gameRooms[gameCode]) {
+        gameRooms[gameCode] = [];
+    }
+
+    // Add the player to the room
+    gameRooms[gameCode].push({ player, socketId: socket.id });
+
+    // Send a welcome message to the player
+    socket.emit("message", `Welcome ${player} to the game!`);
+
+    // Notify other players in the same game
+    socket.to(gameCode).emit("game_message", {
+        player: "System",
+        message: `${player} has joined the game!`,
+        isSystemMessage: true
     });
-
+    socket.on("send_message", (message: string) => {
+        console.log("Message received:", { player, message, gameCode });
+        io.to(gameCode).emit("game_message", {
+            player: player,
+            message: message,
+            timestamp: new Date()
+        });
+    });
+    // Handle disconnection
     socket.on("disconnect", () => {
-        console.log("❌ Socket Disconnected:", socket.id);
+        const index = gameRooms[gameCode].findIndex((p) => p.socketId === socket.id);
+        if (index !== -1) {
+            // Remove the player from the room
+            gameRooms[gameCode].splice(index, 1);
+        }
+        // Notify other players in the game
+        socket.to(gameCode).emit("game_message", {
+            player: "System",
+            message: `${player} has left the game.`,
+            isSystemMessage: true
+        });
     });
 });
-
 // Start Server
 httpServer.listen(PORT, () => {
     console.log(`🚀 Server Listening on Port ${PORT}`);

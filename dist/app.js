@@ -57,13 +57,50 @@ const io = new socket_io_1.Server(httpServer, {
         methods: ["GET", "POST"],
     }
 });
+// A dictionary to hold rooms and players
+const gameRooms = {};
 io.on("connection", (socket) => {
-    console.log("🔌 Socket Connected:", socket.id);
-    socket.on("hello", (data) => {
-        console.log("Message Received!", data);
+    console.log("Socket Conntected", socket.id);
+    const { gameCode, player } = socket.handshake.query;
+    console.log(gameCode, player);
+    // Ensure both gameCode and player are provided
+    if (!gameCode || !player) {
+        return socket.emit("error", "Missing game code or player information");
+    }
+    if (!gameRooms[gameCode]) {
+        gameRooms[gameCode] = [];
+    }
+    // Add the player to the room
+    gameRooms[gameCode].push({ player, socketId: socket.id });
+    // Send a welcome message to the player
+    socket.emit("message", `Welcome ${player} to the game!`);
+    // Notify other players in the same game
+    socket.to(gameCode).emit("game_message", {
+        player: "System",
+        message: `${player} has joined the game!`,
+        isSystemMessage: true
     });
+    socket.on("send_message", (message) => {
+        console.log("Message received:", { player, message, gameCode });
+        io.to(gameCode).emit("game_message", {
+            player: player,
+            message: message,
+            timestamp: new Date()
+        });
+    });
+    // Handle disconnection
     socket.on("disconnect", () => {
-        console.log("❌ Socket Disconnected:", socket.id);
+        const index = gameRooms[gameCode].findIndex((p) => p.socketId === socket.id);
+        if (index !== -1) {
+            // Remove the player from the room
+            gameRooms[gameCode].splice(index, 1);
+        }
+        // Notify other players in the game
+        socket.to(gameCode).emit("game_message", {
+            player: "System",
+            message: `${player} has left the game.`,
+            isSystemMessage: true
+        });
     });
 });
 // Start Server

@@ -28,6 +28,10 @@ const createGame = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         });
         newGame.players.push(host);
         yield newGame.save();
+        res.status(200).json({
+            status: "success",
+            data: newGame
+        });
     }
     catch (error) {
         next(error);
