@@ -63,12 +63,6 @@ const io = new Server(httpServer, {
     }
 });
 
-interface Player {
-    player: string;
-    socketId: string;
-}
-
-
 
 interface GameQuery {
     gameCode: string;
@@ -79,13 +73,15 @@ interface GameQuery {
 
 // A dictionary to hold rooms and players
 const gameRooms: { [gameCode: string]: { player: string, socketId: string }[] } = {};
+const socketToRoom: { [socketId: string]: string } = {};
+
 
 io.on("connection", (socket: Socket) => {
     console.log("Socket Conntected", socket.id)
 
     const { gameCode, player } = socket.handshake.query as unknown as GameQuery;
     console.log(gameCode, player);
-    // Ensure both gameCode and player are provided
+
     if (!gameCode || !player) {
         return socket.emit("error", "Missing game code or player information");
     }
@@ -94,41 +90,71 @@ io.on("connection", (socket: Socket) => {
     if (!gameRooms[gameCode]) {
         gameRooms[gameCode] = [];
     }
-
+    console.log(gameRooms[gameCode].length, "gameRooms length")
+    
     // Add the player to the room
     gameRooms[gameCode].push({ player, socketId: socket.id });
+    socket.join(gameCode.toString());
 
-    // Send a welcome message to the player
-    socket.emit("message", `Welcome ${player} to the game!`);
 
-    // Notify other players in the same game
-    socket.to(gameCode).emit("game_message", {
-        player: "System",
-        message: `${player} has joined the game!`,
-        isSystemMessage: true
+    socket.on("join_game", (data) => {
+        const newRoom = data.game_code.toString();
+
+        // Leave old room if any
+        const oldRoom = socketToRoom[socket.id];
+        if (oldRoom && oldRoom !== newRoom) {
+            socket.leave(oldRoom);
+
+            // Remove from old room tracking
+            gameRooms[oldRoom] = gameRooms[oldRoom].filter(p => p.socketId !== socket.id);
+        }
+
+        // Join new room
+        socket.join(newRoom);
+        socketToRoom[socket.id] = newRoom;
+
+        if (!gameRooms[newRoom]) {
+            gameRooms[newRoom] = [];
+        }
+
+        gameRooms[newRoom].push({ player: data.address, socketId: socket.id });
+
+        // Broadcast join message
+        socket.to(newRoom).emit("game_message", {
+            player: "System",
+            message: `${data.address} has joined the game!`,
+            isSystemMessage: true
+        });
     });
+
+
     socket.on("send_message", (message: string) => {
-        console.log("Message received:", { player, message, gameCode });
-        io.to(gameCode).emit("game_message", {
+        const currentRoom = socketToRoom[socket.id];
+        if (!currentRoom) return;
+
+        console.log("Message received:", { player, message, currentRoom });
+
+        socket.to(currentRoom).emit("game_message", {
             player: player,
             message: message,
             timestamp: new Date()
         });
     });
+
     // Handle disconnection
     socket.on("disconnect", () => {
-        const index = gameRooms[gameCode].findIndex((p) => p.socketId === socket.id);
-        if (index !== -1) {
-            // Remove the player from the room
-            gameRooms[gameCode].splice(index, 1);
+        const currentRoom = socketToRoom[socket.id];
+        if (currentRoom) {
+            gameRooms[currentRoom] = gameRooms[currentRoom].filter(p => p.socketId !== socket.id);
+            socket.to(currentRoom).emit("game_message", {
+                player: "System",
+                message: `${player} has left the game.`,
+                isSystemMessage: true
+            });
+            delete socketToRoom[socket.id];
         }
-        // Notify other players in the game
-        socket.to(gameCode).emit("game_message", {
-            player: "System",
-            message: `${player} has left the game.`,
-            isSystemMessage: true
-        });
     });
+
 });
 // Start Server
 httpServer.listen(PORT, () => {
