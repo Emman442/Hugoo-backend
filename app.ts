@@ -72,7 +72,7 @@ interface GameQuery {
 
 
 // A dictionary to hold rooms and players
-const gameRooms: { [gameCode: string]: { player: string, socketId: string }[] } = {};
+const gameRooms: { [gameCode: string]: { player: string, socketId: string, isHost: boolean, status: "Ready"  }[] } = {};
 const socketToRoom: { [socketId: string]: string } = {};
 
 
@@ -93,7 +93,7 @@ io.on("connection", (socket: Socket) => {
     console.log(gameRooms[gameCode].length, "gameRooms length")
     
     // Add the player to the room
-    gameRooms[gameCode].push({ player, socketId: socket.id });
+    gameRooms[gameCode].push({ player, socketId: socket.id, isHost: true, status: "Ready" });
     socket.join(gameCode.toString());
 
 
@@ -107,6 +107,9 @@ io.on("connection", (socket: Socket) => {
 
             // Remove from old room tracking
             gameRooms[oldRoom] = gameRooms[oldRoom].filter(p => p.socketId !== socket.id);
+
+            // Broadcast update for old room
+            io.to(oldRoom).emit("lobby_update", gameRooms[oldRoom]);
         }
 
         // Join new room
@@ -117,14 +120,31 @@ io.on("connection", (socket: Socket) => {
             gameRooms[newRoom] = [];
         }
 
-        gameRooms[newRoom].push({ player: data.address, socketId: socket.id });
+        // Check if player is already in the room (avoid duplicates)
+        const existingPlayerIndex = gameRooms[newRoom].findIndex(p => p.player === data.address);
 
-        // Broadcast join message
-        socket.to(newRoom).emit("game_message", {
-            player: "System",
-            message: `${data.address} has joined the game!`,
-            isSystemMessage: true
-        });
+        if (existingPlayerIndex >= 0) {
+            // Update existing player's socket ID
+            gameRooms[newRoom][existingPlayerIndex].socketId = socket.id;
+        } else {
+            // Add new player to the room
+            gameRooms[newRoom].push({
+                player: data.address,
+                socketId: socket.id,
+                status: "Ready",
+                isHost: false// First player is host
+            });
+
+            // Only send join message for new players
+            socket.to(newRoom).emit("game_message", {
+                player: "System",
+                message: `${data.address} has joined the game!`,
+                isSystemMessage: true
+            });
+        }
+
+        // Send updated lobby to all players in the room
+        io.to(newRoom).emit("lobby_update", gameRooms[newRoom]);
     });
 
 

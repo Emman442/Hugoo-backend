@@ -72,7 +72,7 @@ io.on("connection", (socket) => {
     }
     console.log(gameRooms[gameCode].length, "gameRooms length");
     // Add the player to the room
-    gameRooms[gameCode].push({ player, socketId: socket.id });
+    gameRooms[gameCode].push({ player, socketId: socket.id, isHost: true, status: "Ready" });
     socket.join(gameCode.toString());
     socket.on("join_game", (data) => {
         const newRoom = data.game_code.toString();
@@ -82,6 +82,8 @@ io.on("connection", (socket) => {
             socket.leave(oldRoom);
             // Remove from old room tracking
             gameRooms[oldRoom] = gameRooms[oldRoom].filter(p => p.socketId !== socket.id);
+            // Broadcast update for old room
+            io.to(oldRoom).emit("lobby_update", gameRooms[oldRoom]);
         }
         // Join new room
         socket.join(newRoom);
@@ -89,13 +91,29 @@ io.on("connection", (socket) => {
         if (!gameRooms[newRoom]) {
             gameRooms[newRoom] = [];
         }
-        gameRooms[newRoom].push({ player: data.address, socketId: socket.id });
-        // Broadcast join message
-        socket.to(newRoom).emit("game_message", {
-            player: "System",
-            message: `${data.address} has joined the game!`,
-            isSystemMessage: true
-        });
+        // Check if player is already in the room (avoid duplicates)
+        const existingPlayerIndex = gameRooms[newRoom].findIndex(p => p.player === data.address);
+        if (existingPlayerIndex >= 0) {
+            // Update existing player's socket ID
+            gameRooms[newRoom][existingPlayerIndex].socketId = socket.id;
+        }
+        else {
+            // Add new player to the room
+            gameRooms[newRoom].push({
+                player: data.address,
+                socketId: socket.id,
+                status: "Ready",
+                isHost: false // First player is host
+            });
+            // Only send join message for new players
+            socket.to(newRoom).emit("game_message", {
+                player: "System",
+                message: `${data.address} has joined the game!`,
+                isSystemMessage: true
+            });
+        }
+        // Send updated lobby to all players in the room
+        io.to(newRoom).emit("lobby_update", gameRooms[newRoom]);
     });
     socket.on("send_message", (message) => {
         const currentRoom = socketToRoom[socket.id];
