@@ -22,9 +22,16 @@ const userSchema = new mongoose_1.default.Schema({
         required: true,
         unique: true
     },
+    profile_pic: {
+        type: String,
+        default: "",
+    },
     games_won: {
         type: Number,
         default: 0
+    },
+    global_score: {
+        type: Number,
     },
     username: {
         type: String,

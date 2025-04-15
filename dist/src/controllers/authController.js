@@ -18,25 +18,34 @@ const generateusername_1 = __importDefault(require("../utils/generateusername"))
 const createUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { address } = req.body;
-        const username = yield (0, generateusername_1.default)();
-        const userAlreadyExists = yield userModel_1.default.findOne({ walletAddress: address });
-        if (userAlreadyExists) {
-            // Do nothing if the user already exists
-            return res.status(200).json({
+        if (!address) {
+            res.status(400).json({
+                status: "error",
+                message: "Wallet address is required"
+            });
+            return;
+        }
+        const existingUser = yield userModel_1.default.findOne({ walletAddress: address });
+        if (existingUser) {
+            res.status(200).json({
                 status: "success",
                 data: {
-                    userAlreadyExists,
+                    user: existingUser,
+                    isNewUser: false
                 }
             });
+            return;
         }
+        const username = yield (0, generateusername_1.default)();
         const newUser = yield userModel_1.default.create({
             walletAddress: address,
             username,
         });
-        res.status(200).json({
+        res.status(201).json({
             status: "success",
             data: {
-                newUser,
+                user: newUser,
+                isNewUser: true
             },
         });
     }
