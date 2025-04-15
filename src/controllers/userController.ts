@@ -5,8 +5,10 @@ import { uploadFile } from "../utils/upload";
 
 export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const { userId } = req.params;
-        const user = await User.findById(userId);
+        const { address } = req.params;
+        console.log('params: ', address)
+        const user = await User.findOne({walletAddress: address});
+        console.log("Userrr", user)
         if (!user) {
             return next(new AppError("No User with that ID was found", 404))
         }
@@ -17,8 +19,8 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
         if(req.body.score){
             user.global_score += req.body.score;
         }
-        if(req.body.games_won){
-            user.games_won += req.body.games_won;
+        if(req.body.won === true){
+            user.games_won += 1;
         }
         if(req.body.name){
             user.name += req.body.name;
@@ -27,13 +29,27 @@ export const updateUser = async (req: Request, res: Response, next: NextFunction
      
         res.status(200).json({
             status: "success",
-            message: "Profile Updated Successfully",
+            message: "User Details Updated Successfully",
             data: {
                 user
             }
         })
     
     } catch (error) {
+        next(error)
+    }
+}
+
+export const getAllUsers = async(req: Request, res: Response, next: NextFunction) => {             
+    try {
+        const users = await User.find({}).select("-__v -createdAt -updatedAt")
+        res.status(200).json({
+            status: "success",
+            data: {
+                users
+            }
+        })
+    }catch (error) {        
         next(error)
     }
 }

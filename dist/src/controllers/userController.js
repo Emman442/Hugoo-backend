@@ -12,14 +12,16 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateUser = void 0;
+exports.getAllUsers = exports.updateUser = void 0;
 const userModel_1 = __importDefault(require("../models/userModel"));
 const appError_1 = __importDefault(require("../utils/appError"));
 const upload_1 = require("../utils/upload");
 const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { userId } = req.params;
-        const user = yield userModel_1.default.findById(userId);
+        const { address } = req.params;
+        console.log('params: ', address);
+        const user = yield userModel_1.default.findOne({ walletAddress: address });
+        console.log("Userrr", user);
         if (!user) {
             return next(new appError_1.default("No User with that ID was found", 404));
         }
@@ -30,8 +32,8 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         if (req.body.score) {
             user.global_score += req.body.score;
         }
-        if (req.body.games_won) {
-            user.games_won += req.body.games_won;
+        if (req.body.won === true) {
+            user.games_won += 1;
         }
         if (req.body.name) {
             user.name += req.body.name;
@@ -39,7 +41,7 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         yield user.save({ validateBeforeSave: false });
         res.status(200).json({
             status: "success",
-            message: "Profile Updated Successfully",
+            message: "User Details Updated Successfully",
             data: {
                 user
             }
@@ -50,3 +52,18 @@ const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
     }
 });
 exports.updateUser = updateUser;
+const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const users = yield userModel_1.default.find({}).select("-__v -createdAt -updatedAt");
+        res.status(200).json({
+            status: "success",
+            data: {
+                users
+            }
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+exports.getAllUsers = getAllUsers;
