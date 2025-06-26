@@ -29,18 +29,32 @@ export const createPlaylist = async (req: Request, res: Response) => {
 
 export const getPlaylists = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const playlists = await Playlist.find({}).populate({
-            path: "songs",
-            select: "artist song_name url", // specify the fields you want to populate
-        });
+        const { filter } = req.query;
+
+        let sortOptions = {}; 
+
+        if (filter === "updated-recently") {
+            sortOptions = { updatedAt: -1 }; 
+        } else if (filter === "added-recently") {
+            sortOptions = { createdAt: -1 }; 
+        }
+
+        const playlists = await Playlist.find({})
+            .sort(sortOptions)
+            .populate({
+                path: "songs",
+                select: "artist song_name url",
+            });
+
         res.status(200).json({
             status: "success",
-            data: { playlists }
-        })
+            data: { playlists },
+        });
     } catch (error) {
-        next(error)
+        next(error);
     }
-}
+};
+
 
 export const getPlaylistById = async (req: Request, res: Response, next: NextFunction) => {
     try {

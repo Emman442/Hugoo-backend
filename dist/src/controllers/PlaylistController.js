@@ -36,13 +36,23 @@ const createPlaylist = (req, res) => __awaiter(void 0, void 0, void 0, function*
 exports.createPlaylist = createPlaylist;
 const getPlaylists = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const playlists = yield playlistSchema_1.default.find({}).populate({
+        const { filter } = req.query;
+        let sortOptions = {};
+        if (filter === "updated-recently") {
+            sortOptions = { updatedAt: -1 };
+        }
+        else if (filter === "added-recently") {
+            sortOptions = { createdAt: -1 };
+        }
+        const playlists = yield playlistSchema_1.default.find({})
+            .sort(sortOptions)
+            .populate({
             path: "songs",
-            select: "artist song_name url", // specify the fields you want to populate
+            select: "artist song_name url",
         });
         res.status(200).json({
             status: "success",
-            data: { playlists }
+            data: { playlists },
         });
     }
     catch (error) {

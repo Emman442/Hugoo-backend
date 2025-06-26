@@ -6,9 +6,7 @@ import { uploadFile } from "../utils/upload";
 export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { address } = req.params;
-        console.log('params: ', address)
         const user = await User.findOne({walletAddress: address});
-        console.log("Userrr", user)
         if (!user) {
             return next(new AppError("No User with that ID was found", 404))
         }

@@ -19,9 +19,7 @@ const upload_1 = require("../utils/upload");
 const updateUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { address } = req.params;
-        console.log('params: ', address);
         const user = yield userModel_1.default.findOne({ walletAddress: address });
-        console.log("Userrr", user);
         if (!user) {
             return next(new appError_1.default("No User with that ID was found", 404));
         }
