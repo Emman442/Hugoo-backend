@@ -121,3 +121,12 @@ export const updatePlaylist = async (req: Request, res: Response, next: NextFunc
     }
 };
 
+export async function fetchPlaylistFromDatabase(playlistId: String){
+    const playlist = await Playlist.findById(playlistId).populate("songs");
+
+    // if(!playlist){
+    //     return new Error("Playlist Not found")
+    // }
+
+    return playlist
+}2

@@ -13,6 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.updatePlaylist = exports.deletePlaylistById = exports.getPlaylistById = exports.getPlaylists = exports.createPlaylist = void 0;
+exports.fetchPlaylistFromDatabase = fetchPlaylistFromDatabase;
 const playlistSchema_1 = __importDefault(require("../models/playlistSchema"));
 const upload_1 = require("../utils/upload");
 const appError_1 = __importDefault(require("../utils/appError"));
@@ -123,3 +124,13 @@ const updatePlaylist = (req, res, next) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.updatePlaylist = updatePlaylist;
+function fetchPlaylistFromDatabase(playlistId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const playlist = yield playlistSchema_1.default.findById(playlistId).populate("songs");
+        // if(!playlist){
+        //     return new Error("Playlist Not found")
+        // }
+        return playlist;
+    });
+}
+2;
