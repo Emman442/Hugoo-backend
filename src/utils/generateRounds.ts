@@ -13,7 +13,7 @@ export function generateGameRounds(songs: any[], numRounds: number): GameRound[]
 
         // Shuffle and pick 4 songs for options
         const shuffled = [...availableSongs].sort(() => 0.5 - Math.random());
-        const roundSongs = shuffled.slice(0, 5);
+        const roundSongs = shuffled.slice(0, 4);
         console.log("Round Songs: ", roundSongs);
 
         // Pick one as the correct answer

@@ -153,6 +153,12 @@ io.on("connection", (socket: Socket) => {
         }
 
         io.to(newRoom).emit("lobby_update", gameRooms[newRoom]);
+        // socket.emit("game_message", {
+        //     player: "System",
+        //     message: `${address.substring(0, 6)}...${address.substring(address.length - 4)} has joined the game.`,
+        //     isSystemMessage: true,
+        //     timestamp: new Date()
+        // });
         await saveRoomState(newRoom);
     });
 
@@ -261,7 +267,7 @@ io.on("connection", (socket: Socket) => {
         }
     });
 
-    socket.on("next_round", async(data) => {
+    socket.on("next_round", async (data) => {
         const { game_code } = data;
         const currentRoom = game_code || socketToRoom[socket.id];
         const gameState = gameStates[currentRoom];
@@ -276,14 +282,65 @@ io.on("connection", (socket: Socket) => {
             }, 2000);
         } else {
             gameState.gamePhase = 'finished';
+            const finalScores = gameRooms[currentRoom].map(player => ({
+                player: player.player,
+                score: player.score,
+                // Add other stats you need
+            }));
+
             io.to(currentRoom).emit("game_finished", {
                 message: "Game completed!",
+                players: finalScores,
                 timestamp: new Date()
             });
         }
 
         await saveRoomState(currentRoom);
     });
+
+    socket.on("player_answer", async (data) => {
+        const { game_code, round, answer, correct, score } = data;
+        const currentRoom = game_code;
+        const gameState = gameStates[currentRoom];
+        const players = gameRooms[currentRoom];
+
+        if (!gameState || !players) return;
+
+        // Track this player's answer
+        gameState.playersAnswered.add(socket.id);
+
+        // Update player score
+        const player = players.find(p => p.socketId === socket.id);
+        if (player) player.score = score;
+
+        // Check if all players have answered
+        const activePlayers = players.length;
+        if (gameState.playersAnswered.size >= activePlayers) {
+            // All players answered, move to next round
+            gameState.playersAnswered.clear(); // Reset for next round
+
+            setTimeout(() => {
+                if (gameState.currentRound < gameState.totalRounds) {
+                    gameState.currentRound++;
+                    const nextRound = gameState.rounds[gameState.currentRound - 1];
+                    io.to(currentRoom).emit("new_round", nextRound);
+                } else {
+                    // Game finished
+                    gameState.gamePhase = 'finished';
+                    const finalScores = players.map(p => ({
+                        player: p.player,
+                        score: p.score
+                    }));
+                    io.to(currentRoom).emit("game_finished", {
+                        message: "Game completed!",
+                        players: finalScores
+                    });
+                }
+            }, 2000);
+        }
+
+        await saveRoomState(currentRoom);
+      });
 
     socket.on("send_message", (message: string) => {
         const currentRoom = socketToRoom[socket.id];
@@ -325,7 +382,7 @@ io.on("connection", (socket: Socket) => {
 
         delete socketToRoom[socket.id];
     });
-    
+
 
     socket.on("error", (error) => {
         console.error("❌ Socket error:", error);
