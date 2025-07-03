@@ -1,11 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { Player } from '../../app';
 
-interface Player {
-    player: string;
-    isHost: boolean;
-    status: 'Ready' | 'Not Ready';
-    score: number;
-}
+
 
 interface GameRound {
     roundNumber: number;
@@ -21,6 +17,7 @@ export interface IGameRoom extends Document {
     totalRounds: number;
     gamePhase: 'lobby' | 'playing' | 'finished';
     rounds: GameRound[];
+    totalWagered: number;
 }
 
 const PlayerSchema: Schema = new Schema({
@@ -28,6 +25,10 @@ const PlayerSchema: Schema = new Schema({
     isHost: Boolean,
     status: { type: String, enum: ['Ready', 'Not Ready'], default: 'Ready' },
     score: Number,
+    responseTime: Number,
+    totalAnswers: Number,
+    totalResponseTime: Number,
+    correctAnswers: Number
 }, { _id: false });
 
 const GameRoundSchema: Schema = new Schema({

@@ -109,7 +109,10 @@ io.on("connection", (socket) => {
                     currentRound: dbRoom.currentRound,
                     totalRounds: dbRoom.totalRounds,
                     gamePhase: dbRoom.gamePhase,
-                    rounds: dbRoom.rounds,
+                    rounds: dbRoom.rounds.map((round, idx) => {
+                        var _a, _b;
+                        return (Object.assign(Object.assign({}, round), { startTime: (_a = round.startTime) !== null && _a !== void 0 ? _a : 0, syncTimestamp: (_b = round.syncTimestamp) !== null && _b !== void 0 ? _b : 0 }));
+                    }),
                     playersAnswered: new Set(),
                 };
                 console.log(`✅ Restored gameState for room ${newRoom} from DB`);
@@ -162,7 +165,10 @@ io.on("connection", (socket) => {
                     currentRound: dbRoom.currentRound,
                     totalRounds: dbRoom.totalRounds,
                     gamePhase: dbRoom.gamePhase,
-                    rounds: dbRoom.rounds,
+                    rounds: dbRoom.rounds.map((round, idx) => {
+                        var _a, _b;
+                        return (Object.assign(Object.assign({}, round), { startTime: (_a = round.startTime) !== null && _a !== void 0 ? _a : 0, syncTimestamp: (_b = round.syncTimestamp) !== null && _b !== void 0 ? _b : 0 }));
+                    }),
                     playersAnswered: new Set(),
                 };
                 gameState = gameStates[currentRoom];
@@ -172,7 +178,6 @@ io.on("connection", (socket) => {
                 return socket.emit("error", "Game state not found");
             }
         }
-        // ✅ FIXED: Always ensure we have a playlistId before starting
         if (!gameState.hostPlaylistId && playlistId) {
             gameState.hostPlaylistId = playlistId;
             console.log(`✅ Set missing hostPlaylistId to ${playlistId}`);
@@ -200,7 +205,7 @@ io.on("connection", (socket) => {
                 });
                 return socket.emit("error", "Playlist needs at least 4 songs");
             }
-            console.log("🎮 Generating game rounds...");
+            console.log("🎮 Generating game rounds with sync...");
             gameState.rounds = (0, generateRounds_1.generateGameRounds)(playlist.songs, 5);
             gameState.gamePhase = "playing";
             gameState.currentRound = 1;
@@ -220,11 +225,16 @@ io.on("connection", (socket) => {
                 isSystemMessage: true,
                 timestamp: new Date()
             });
-            console.log("🎮 Setting timeout for first round...");
+            console.log("🎮 Setting synchronized timeout for first round...");
+            // Send the first round with synchronization data
             setTimeout(() => {
                 const firstRound = gameState.rounds[0];
-                console.log("🎮 Emitting first round:", firstRound.roundNumber);
-                io.to(currentRoom).emit("new_round", firstRound);
+                const currentTime = Date.now();
+                // Add sync data to the round
+                const syncedRound = Object.assign(Object.assign({}, firstRound), { syncTimestamp: currentTime, serverDelay: 1000 // Give clients 1 second to prepare
+                 });
+                console.log("🎮 Emitting synchronized first round:", syncedRound.roundNumber);
+                io.to(currentRoom).emit("new_round", syncedRound);
             }, 2000);
         }
         catch (error) {
@@ -232,6 +242,7 @@ io.on("connection", (socket) => {
             socket.emit("error", "Failed to start game");
         }
     }));
+    // Update next_round handler as well
     socket.on("next_round", (data) => __awaiter(void 0, void 0, void 0, function* () {
         const { game_code } = data;
         const currentRoom = game_code || socketToRoom[socket.id];
@@ -241,8 +252,12 @@ io.on("connection", (socket) => {
         gameState.currentRound++;
         if (gameState.currentRound <= gameState.totalRounds) {
             const nextRound = gameState.rounds[gameState.currentRound - 1];
+            const currentTime = Date.now();
+            // Add sync data to the round
+            const syncedRound = Object.assign(Object.assign({}, nextRound), { syncTimestamp: currentTime, serverDelay: 1000 // Give clients 1 second to prepare
+             });
             setTimeout(() => {
-                io.to(currentRoom).emit("new_round", nextRound);
+                io.to(currentRoom).emit("new_round", syncedRound);
             }, 2000);
         }
         else {
@@ -250,7 +265,6 @@ io.on("connection", (socket) => {
             const finalScores = gameRooms[currentRoom].map(player => ({
                 player: player.player,
                 score: player.score,
-                // Add other stats you need
             }));
             io.to(currentRoom).emit("game_finished", {
                 message: "Game completed!",
@@ -260,6 +274,7 @@ io.on("connection", (socket) => {
         }
         yield saveRoomState(currentRoom);
     }));
+    // Update player_answer handler for automatic progression
     socket.on("player_answer", (data) => __awaiter(void 0, void 0, void 0, function* () {
         const { game_code, round, answer, correct, score } = data;
         const currentRoom = game_code;
@@ -282,7 +297,10 @@ io.on("connection", (socket) => {
                 if (gameState.currentRound < gameState.totalRounds) {
                     gameState.currentRound++;
                     const nextRound = gameState.rounds[gameState.currentRound - 1];
-                    io.to(currentRoom).emit("new_round", nextRound);
+                    const currentTime = Date.now();
+                    // Add sync data to the round
+                    const syncedRound = Object.assign(Object.assign({}, nextRound), { syncTimestamp: currentTime, serverDelay: 1000 });
+                    io.to(currentRoom).emit("new_round", syncedRound);
                 }
                 else {
                     // Game finished
@@ -394,7 +412,10 @@ function loadRoomsOnStartup() {
                     currentRound: room.currentRound,
                     totalRounds: room.totalRounds,
                     gamePhase: room.gamePhase,
-                    rounds: room.rounds,
+                    rounds: room.rounds.map((round) => {
+                        var _a, _b;
+                        return (Object.assign(Object.assign({}, round), { startTime: (_a = round.startTime) !== null && _a !== void 0 ? _a : 0, syncTimestamp: (_b = round.syncTimestamp) !== null && _b !== void 0 ? _b : 0 }));
+                    }),
                     playersAnswered: new Set(),
                 };
             });
