@@ -39,6 +39,10 @@ const PlayerSchema = new mongoose_1.Schema({
     isHost: Boolean,
     status: { type: String, enum: ['Ready', 'Not Ready'], default: 'Ready' },
     score: Number,
+    responseTime: Number,
+    totalAnswers: Number,
+    totalResponseTime: Number,
+    correctAnswers: Number
 }, { _id: false });
 const GameRoundSchema = new mongoose_1.Schema({
     roundNumber: Number,

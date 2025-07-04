@@ -43,7 +43,7 @@ cloudinary_1.default.v2.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 app.use((0, cors_1.default)({
-    origin: "*",
+    origin: ["http://localhost:3000", "https://hugoo-frontend.vercel.app"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
@@ -69,7 +69,7 @@ io.on("connection", (socket) => {
     // Fixed join_game event handler
     socket.on("join_game", (data) => __awaiter(void 0, void 0, void 0, function* () {
         var _a;
-        const { game_code, address, isHost, playlistId } = data;
+        const { game_code, address, isHost, playlistId, totalWagered } = data;
         const newRoom = game_code.toString();
         const oldRoom = socketToRoom[socket.id];
         if (oldRoom && oldRoom !== newRoom) {
@@ -95,6 +95,10 @@ io.on("connection", (socket) => {
                 status: "Ready",
                 isHost: isHost || gameRooms[newRoom].length === 0,
                 score: 0,
+                responseTime: 0,
+                totalAnswers: 0,
+                totalResponseTime: 0,
+                correctAnswers: 0
             };
             gameRooms[newRoom].push(newPlayer);
         }
@@ -114,6 +118,7 @@ io.on("connection", (socket) => {
                         return (Object.assign(Object.assign({}, round), { startTime: (_a = round.startTime) !== null && _a !== void 0 ? _a : 0, syncTimestamp: (_b = round.syncTimestamp) !== null && _b !== void 0 ? _b : 0 }));
                     }),
                     playersAnswered: new Set(),
+                    totalWagered: totalWagered || 0, // Ensure totalWagered is set
                 };
                 console.log(`✅ Restored gameState for room ${newRoom} from DB`);
             }
@@ -127,6 +132,7 @@ io.on("connection", (socket) => {
                     gamePhase: 'lobby',
                     rounds: [],
                     playersAnswered: new Set(),
+                    totalWagered: totalWagered || 0,
                 };
                 console.log(`✅ Created new gameState for room ${newRoom} with playlistId: ${playlistId}`);
             }
@@ -137,6 +143,7 @@ io.on("connection", (socket) => {
             }
         }
         io.to(newRoom).emit("lobby_update", gameRooms[newRoom]);
+        io.to(newRoom).emit("total_wagered", gameStates[newRoom].totalWagered);
         // socket.emit("game_message", {
         //     player: "System",
         //     message: `${address.substring(0, 6)}...${address.substring(address.length - 4)} has joined the game.`,
@@ -276,7 +283,7 @@ io.on("connection", (socket) => {
     }));
     // Update player_answer handler for automatic progression
     socket.on("player_answer", (data) => __awaiter(void 0, void 0, void 0, function* () {
-        const { game_code, round, answer, correct, score } = data;
+        const { game_code, round, answer, correct, score, responseTime } = data;
         const currentRoom = game_code;
         const gameState = gameStates[currentRoom];
         const players = gameRooms[currentRoom];
@@ -286,8 +293,14 @@ io.on("connection", (socket) => {
         gameState.playersAnswered.add(socket.id);
         // Update player score
         const player = players.find(p => p.socketId === socket.id);
-        if (player)
+        if (player) {
             player.score = score;
+            player.totalAnswers = (player.totalAnswers || 0) + 1;
+            player.totalResponseTime = (player.totalResponseTime || 0) + responseTime;
+            if (correct) {
+                player.correctAnswers = (player.correctAnswers || 0) + 1;
+            }
+        }
         // Check if all players have answered
         const activePlayers = players.length;
         if (gameState.playersAnswered.size >= activePlayers) {
@@ -399,13 +412,20 @@ function loadRoomsOnStartup() {
         try {
             const rooms = yield gameRoomSchema_1.default.find({});
             rooms.forEach(room => {
-                gameRooms[room.gameCode] = room.players.map(p => ({
-                    player: p.player,
-                    socketId: '', // Will update when players reconnect
-                    isHost: p.isHost,
-                    status: p.status,
-                    score: p.score,
-                }));
+                gameRooms[room.gameCode] = room.players.map(p => {
+                    var _a, _b, _c, _d;
+                    return ({
+                        player: p.player,
+                        socketId: '', // Will update when players reconnect
+                        isHost: p.isHost,
+                        status: p.status,
+                        score: p.score,
+                        responseTime: (_a = p.responseTime) !== null && _a !== void 0 ? _a : 0,
+                        totalAnswers: (_b = p.totalAnswers) !== null && _b !== void 0 ? _b : 0,
+                        totalResponseTime: (_c = p.totalResponseTime) !== null && _c !== void 0 ? _c : 0,
+                        correctAnswers: (_d = p.correctAnswers) !== null && _d !== void 0 ? _d : 0,
+                    });
+                });
                 gameStates[room.gameCode] = {
                     gameCode: room.gameCode,
                     hostPlaylistId: room.hostPlaylistId,
